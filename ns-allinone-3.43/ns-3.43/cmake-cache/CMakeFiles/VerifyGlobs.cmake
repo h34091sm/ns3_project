@@ -6,6 +6,7 @@ cmake_policy(SET CMP0009 NEW)
 file(GLOB NEW_GLOB LIST_DIRECTORIES true "/home/h34091sm/ns3_project/ns-allinone-3.43/ns-3.43/scratch/**")
 set(OLD_GLOB
   "/home/h34091sm/ns3_project/ns-allinone-3.43/ns-3.43/scratch/CMakeLists.txt"
+  "/home/h34091sm/ns3_project/ns-allinone-3.43/ns-3.43/scratch/dsdv_starter.cc"
   "/home/h34091sm/ns3_project/ns-allinone-3.43/ns-3.43/scratch/nested-subdir"
   "/home/h34091sm/ns3_project/ns-allinone-3.43/ns-3.43/scratch/scratch-simulator.cc"
   "/home/h34091sm/ns3_project/ns-allinone-3.43/ns-3.43/scratch/subdir"
@@ -18,6 +19,7 @@ endif()
 # single_source_file_scratches at scratch/CMakeLists.txt:77 (file)
 file(GLOB NEW_GLOB LIST_DIRECTORIES true "/home/h34091sm/ns3_project/ns-allinone-3.43/ns-3.43/scratch/[^.]*.cc")
 set(OLD_GLOB
+  "/home/h34091sm/ns3_project/ns-allinone-3.43/ns-3.43/scratch/dsdv_starter.cc"
   "/home/h34091sm/ns3_project/ns-allinone-3.43/ns-3.43/scratch/scratch-simulator.cc"
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")

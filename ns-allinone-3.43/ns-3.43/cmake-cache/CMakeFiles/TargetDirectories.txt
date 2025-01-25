@@ -970,6 +970,7 @@
 /home/h34091sm/ns3_project/ns-allinone-3.43/ns-3.43/cmake-cache/examples/wireless/CMakeFiles/install.dir
 /home/h34091sm/ns3_project/ns-allinone-3.43/ns-3.43/cmake-cache/examples/wireless/CMakeFiles/install/local.dir
 /home/h34091sm/ns3_project/ns-allinone-3.43/ns-3.43/cmake-cache/examples/wireless/CMakeFiles/install/strip.dir
+/home/h34091sm/ns3_project/ns-allinone-3.43/ns-3.43/cmake-cache/scratch/CMakeFiles/scratch_dsdv_starter.dir
 /home/h34091sm/ns3_project/ns-allinone-3.43/ns-3.43/cmake-cache/scratch/CMakeFiles/scratch_scratch-simulator.dir
 /home/h34091sm/ns3_project/ns-allinone-3.43/ns-3.43/cmake-cache/scratch/CMakeFiles/scratch_subdir_scratch-subdir.dir
 /home/h34091sm/ns3_project/ns-allinone-3.43/ns-3.43/cmake-cache/scratch/CMakeFiles/edit_cache.dir
