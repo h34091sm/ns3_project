@@ -1,0 +1,8 @@
+# Ignore CMake cache files
+ns-allinone-3.43/ns-3.43/cmake-cache/CMakeCache.txt
+
+# Ignore build directory
+ns-allinone-3.43/ns-3.43/build/
+
+# Ignore all .log files
+*.log
