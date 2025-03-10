@@ -49,7 +49,7 @@ class UrbanManet
     Ipv4InterfaceContainer adhocInterfaces; 
 
     public:
-    UrbanManet(std::string &protocolName, double &txp, std::string &packetSize, std::string &rate, std::string &phyMode, NodeContainer nodes);
+    UrbanManet(std::string &protocolName, double &txp, std::string &packetSize, std::string &rate, std::string &phyMode, NodeContainer &nodes);
     ~UrbanManet(){}
 
     Ipv4InterfaceContainer get_adhocInterface()

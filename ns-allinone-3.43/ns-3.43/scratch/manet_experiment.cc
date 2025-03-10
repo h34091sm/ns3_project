@@ -17,6 +17,7 @@
 #include "ns3/yans-wifi-helper.h"
 #include "ns3/EmergencyCaller.h"
 #include "ns3/EmergencyCentre.h"
+#include "ns3/EmergencyResponder.h"
 #include "ns3/UrbanManet.h"
 
 #include <fstream>
@@ -24,14 +25,67 @@
 #include <vector>
 #include <string>
 #include <set>
+#include <random>
 
 using namespace ns3;
 
 std::vector<double> packetReceiveTimes;
 
+void RemoveNode(Ptr<Node> node) {
+    // Step 1: Stop all applications on the node
+    uint32_t appCount = node->GetNApplications();
+    for (uint32_t i = 0; i < appCount; ++i) {
+        node->GetApplication(i)->SetStopTime(Seconds(0));  // Correct way to stop apps
+    }
 
-// Determine Emergency Centre that is closest to caller
-Ptr<Node> NearestCentreNode(Ptr<Node> node, NodeContainer container) {
+    // Step 2: Dispose of all NetDevices on the node
+    uint32_t deviceCount = node->GetNDevices();
+    for (uint32_t i = 0; i < deviceCount; ++i) {
+        node->GetDevice(i)->Dispose();  // Dispose of each NetDevice
+    }
+
+    // Step 3: Dispose of the node itself
+    node->Dispose();
+}
+
+
+void MoveResponderToCaller(Ptr<Node> caller_node, Ptr<Node> responder_node) 
+{
+    Ptr<ConstantVelocityMobilityModel> r_mobility = responder_node->GetObject<ConstantVelocityMobilityModel>();
+    Ptr<RandomWaypointMobilityModel> c_mobility = caller_node->GetObject<RandomWaypointMobilityModel>();
+
+    Vector velocity = Vector3D(c_mobility->GetPosition().x - r_mobility->GetPosition().x, c_mobility->GetPosition().y - r_mobility->GetPosition().y, 0.0);
+
+    if (                                                            // if node position within range of +-1 of the destination coordinates
+        (r_mobility->GetPosition().x >= c_mobility->GetPosition().x - 1) 
+        && (r_mobility->GetPosition().x <= c_mobility->GetPosition().x  + 1) 
+        && (r_mobility->GetPosition().y >=c_mobility->GetPosition().y - 1)
+        && (r_mobility->GetPosition().y <= c_mobility->GetPosition().y + 1)
+        )
+    {
+        r_mobility->SetVelocity(Vector3D(0.0, 0.0, 0.0));
+        return;
+    }
+
+    else 
+    {
+        if (r_mobility->GetPosition().x > 100 || r_mobility->GetPosition().x < 0 || r_mobility->GetPosition().y > 100 || r_mobility->GetPosition().y < 0) // if node goes out of bounds
+        {
+            r_mobility->SetVelocity(Vector3D(0.0, 0.0, 0.0));
+            return;
+        }
+
+        else 
+        {
+            r_mobility->SetVelocity(velocity);
+            Simulator::Schedule(Seconds(1.0), &MoveResponderToCaller, caller_node, responder_node);
+        }
+    }
+}
+
+
+// Determine Emergency Centre / Emergency Responder that is closest to caller
+Ptr<Node> NearestNodeToCaller(Ptr<Node> node, NodeContainer container) {
     Ptr<MobilityModel> nodeMobility = node->GetObject<MobilityModel>();
     if (!nodeMobility) {
         NS_LOG_UNCOND("Node in container1 has no MobilityModel.");
@@ -56,13 +110,14 @@ Ptr<Node> NearestCentreNode(Ptr<Node> node, NodeContainer container) {
     return nearestNode;
 }
 
+
 // Stop a node that is experiencing emergency
-void FreezeNode(Ptr<Node> node, Vector fixedPos, double interval)
+void FreezeNode(Ptr<Node> node, double interval)
 {
-  // Set the node's position to fixedPos and re-schedule this function
   Ptr<MobilityModel> mob = node->GetObject<MobilityModel>();
-  mob->SetPosition(fixedPos);
-  Simulator::Schedule(Seconds(interval), &FreezeNode, node, fixedPos, interval);
+  mob->SetPosition(mob->GetPosition());
+
+  Simulator::Schedule(Seconds(interval), &FreezeNode, node, interval);
 }
 
 
@@ -95,11 +150,10 @@ void SendPacket(Ptr<Socket> socket, Ipv4Address destination, uint16_t port, std:
 
 }
 
-
-// Caller calls centre and centre responds
-void EmergencyCallWithResponse(Ptr<Node> centre, Ptr<Node> caller, double emergency_call_time, Ipv4Address centre_address, Ipv4Address caller_address)
+// Caller calls centre, centre informs responder and responder attends caller
+void EmergencyCallWithResponse(Ptr<Node> centre, Ptr<Node> caller, Ptr<Node> responder,  double emergency_call_time, Ipv4Address centre_address, Ipv4Address caller_address, Ipv4Address responder_address)
 {
-    
+    std::cout << "Call by Caller Node: " << caller->GetId() << " Centre: " << centre->GetId() << " Responder: " << responder->GetId() << std::endl;
     Ptr<Socket> recv_emergency_call = RecvSocketConfig(centre);
     recv_emergency_call->SetRecvCallback(MakeCallback(&ReceivePacket));
     Ptr<Socket> send_emergency_call = Socket::CreateSocket(caller, UdpSocketFactory::GetTypeId());  // Sender
@@ -109,56 +163,78 @@ void EmergencyCallWithResponse(Ptr<Node> centre, Ptr<Node> caller, double emerge
     + ", " + std::to_string(send_emergency_call->GetNode()->GetObject<MobilityModel>()->GetPosition().y);
     Simulator::Schedule(Seconds(emergency_call_time), &SendPacket, send_emergency_call, centre_address, 8080, message);
 
-    Ptr<Socket> recv_centre_response = RecvSocketConfig(caller);
-    recv_centre_response->SetRecvCallback(MakeCallback(&ReceivePacket));
-    Ptr<Socket> send_centre_response = Socket::CreateSocket(centre, UdpSocketFactory::GetTypeId());  // Sender
-    std::string message1 = "Centre Response by node " + std::to_string(send_centre_response->GetNode()->GetId())
-    + " to node " +  std::to_string(recv_centre_response->GetNode()->GetId()) 
-    + ". At location " + std::to_string(send_centre_response->GetNode()->GetObject<MobilityModel>()->GetPosition().x)
-    + ", " + std::to_string(send_centre_response->GetNode()->GetObject<MobilityModel>()->GetPosition().y);
-    Simulator::Schedule(Seconds(emergency_call_time + 1.0), &SendPacket, send_centre_response, caller_address, 8080, message1);
+    Ptr<Socket> recv_centre_req = RecvSocketConfig(responder);
+    recv_centre_req->SetRecvCallback(MakeCallback(&ReceivePacket));
+    Ptr<Socket> send_centre_req = Socket::CreateSocket(centre, UdpSocketFactory::GetTypeId());  // Sender
+    std::string message1 = "Centre Response by node " + std::to_string(send_centre_req->GetNode()->GetId())
+    + " to node " +  std::to_string(recv_centre_req->GetNode()->GetId()) 
+    + ". At location " + std::to_string(send_centre_req->GetNode()->GetObject<MobilityModel>()->GetPosition().x)
+    + ", " + std::to_string(send_centre_req->GetNode()->GetObject<MobilityModel>()->GetPosition().y);
+    Simulator::Schedule(Seconds(emergency_call_time + 1.0), &SendPacket, send_centre_req, responder_address, 8080, message1); 
+
 }
 
+// To make a caller node disappear after responder has attended it 
+void ChangeNodeSize(AnimationInterface *anim, uint32_t nodeId, double newSize) {
+    anim->UpdateNodeSize(nodeId, newSize, newSize); // Width and height
+}
 
 int main(int argc, char *argv[]) { 
+    CommandLine cmd;
+    cmd.Parse(argc, argv);
+
     // Enable logging
     LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
     LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
 
+    std::random_device rd;  // Obtain a random seed
+    std::mt19937 gen(rd()); // Standard Mersenne Twister generator
+    std::uniform_int_distribution<int> dist(0, 100); // Define range  
 
     // Configure Emergency Centre nodes 
+    ns3::EmergencyCentre emergency_centre;
     std::vector<ns3::Vector3D> centre_coords = {
-                                                ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0), 
-                                                ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0), 
-                                                ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0),
-                                                ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0)
+                                                ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), 
+                                                ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), 
+                                                // ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0),
+                                                // ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0) 
                                                };
 
-    ns3::EmergencyCentre emergency_centre;
     emergency_centre.add_nodes(centre_coords);
     NodeContainer centre_container = emergency_centre.get_container();
-    uint32_t numCentres = centre_container.GetN();
+
 
     // Configure Emergency Caller nodes 
+    ns3::EmergencyCaller emergency_caller;
     std::vector<ns3::Vector3D> caller_coords = {
-                                                ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0), 
-                                                ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0), 
-                                                ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0),
-                                                ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0),
-                                                ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0),
-                                                ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0), 
-                                                ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0), 
-                                                ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0), ns3::Vector3D(rand() % 100, rand() % 100, 0.0)
+                                                ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), 
+                                                ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), 
+                                                ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0),
+                                                ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0),
+                                                // ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0),
+                                                // ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), 
+                                                // ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), 
+                                                // ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0)
                                                };
 
-    ns3::EmergencyCaller emergency_caller;
     emergency_caller.add_nodes(caller_coords);
     NodeContainer caller_container = emergency_caller.get_container();
     uint32_t numCallers = caller_container.GetN();
 
+    // Configure Emergency Responder nodes 
+    ns3::EmergencyResponder emergency_responder;
+    std::vector<ns3::Vector3D> responder_coords = {
+        ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), 
+        // ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), ns3::Vector3D(dist(gen), dist(gen), 0.0), 
+    };
+    emergency_responder.add_nodes(responder_coords);
+    NodeContainer responder_container = emergency_responder.get_container();
+    // uint32_t numResponders = responder_container.GetN();
+     
+
     NodeContainer callers_which_experience_emergency; // out of all the citizens, these are the ones that experience emergency
 
-    for (uint32_t i=0; i<5; i++)
+    for (uint32_t i=0; i<7; i++)
     {
         uint32_t rand_int = rand() % numCallers;
         callers_which_experience_emergency.Add(caller_container.Get(rand_int));
@@ -166,7 +242,7 @@ int main(int argc, char *argv[]) {
 
     // Node Container containing all nodes
     NodeContainer all_nodes;
-    all_nodes.Add(centre_container, caller_container);
+    all_nodes.Add(centre_container, caller_container, responder_container);
  
     // Configure MANET parameters
     std::string protocolName ("AODV");
@@ -178,6 +254,7 @@ int main(int argc, char *argv[]) {
     UrbanManet manet = UrbanManet(protocolName, txp, packetSize, rate, phyMode, all_nodes);
 
     AnimationInterface anim ("manet-experiment.xml");
+
     // Enable packet tracking lines
     anim.EnablePacketMetadata(true);
 
@@ -186,35 +263,45 @@ int main(int argc, char *argv[]) {
     {
         Ptr<Node> object = *j;
         anim.UpdateNodeColor (*j, 0, 255, 0); // Green
-        anim.UpdateNodeSize (*j, 2, 2);
+        anim.UpdateNodeSize (*j, 5, 5);
     }
 
-    uint32_t caller_index;
-    uint32_t centre_index;
+    for (auto j = responder_container.Begin(); j != responder_container.End(); ++j)
+    {
+        Ptr<Node> object = *j;
+        anim.UpdateNodeColor (*j, 0, 0, 255); // Blue
+        anim.UpdateNodeSize (*j, 2, 2);
+    }
+  
+    uint32_t numCentres = centre_container.GetN();
     double time_value = 2.0;
 
     for (uint32_t i=0; i<callers_which_experience_emergency.GetN(); i++)  // emergency simulation for callers that experience emergency
     {
-        if (i%2 == 1)
-        {
-            time_value = time_value + 5.0;
-        }
+        uint32_t caller_index = callers_which_experience_emergency.Get(i)->GetId() - numCentres;
+        uint32_t centre_index = NearestNodeToCaller(caller_container.Get(caller_index), centre_container)->GetId();
+        uint32_t responder_index = NearestNodeToCaller(caller_container.Get(caller_index), responder_container)->GetId() - numCallers - numCentres;
 
-        caller_index = callers_which_experience_emergency.Get(i)->GetId() - numCentres;
-        centre_index = NearestCentreNode(caller_container.Get(caller_index), centre_container)->GetId();
+        Ptr<RandomWaypointMobilityModel> caller_mobility = caller_container.Get(caller_index)->GetObject<RandomWaypointMobilityModel>();
+        Ptr<ConstantVelocityMobilityModel> responder_mobility = responder_container.Get(responder_index)->GetObject<ConstantVelocityMobilityModel>();
 
-        Simulator::Schedule(Seconds(time_value), [&caller_container, caller_index]() {
-            Ptr<MobilityModel> mob = caller_container.Get(caller_index)->GetObject<MobilityModel>();
-            Vector freezePos = mob->GetPosition(); // Capture the position at stop time
-            FreezeNode(caller_container.Get(caller_index), freezePos, 1.0);
-        });
-        
-        anim.UpdateNodeColor (caller_container.Get(caller_index), 102, 0, 204); // Purple indicates that the nodes experience emergency
-        EmergencyCallWithResponse(centre_container.Get(centre_index), caller_container.Get(caller_index), time_value+1.0, manet.get_adhocInterface().GetAddress(centre_index), manet.get_adhocInterface().GetAddress(callers_which_experience_emergency.Get(i)->GetId()));
+        Simulator::Schedule(Seconds(time_value), &FreezeNode, caller_container.Get(caller_index), 1.0);
 
-    }
+        anim.UpdateNodeColor (caller_container.Get(caller_index), 2, 2, 2); // Black indicates that the nodes experience emergency
+        EmergencyCallWithResponse(centre_container.Get(centre_index), caller_container.Get(caller_index), responder_container.Get(responder_index), time_value+1.0, 
+                                  manet.get_adhocInterface().GetAddress(centre_index), manet.get_adhocInterface().GetAddress(callers_which_experience_emergency.Get(i)->GetId()), 
+                                 manet.get_adhocInterface().GetAddress(responder_index + numCallers + numCentres));
 
-    Simulator::Stop(Seconds(25));
+        Simulator::Schedule(Seconds(time_value + 4.0), &MoveResponderToCaller, caller_container.Get(caller_index), responder_container.Get(responder_index)); 
+
+        // Remove emergency caller that has been attended to
+        Simulator::Schedule(Seconds(time_value + 5.0), &ChangeNodeSize, &anim, caller_container.Get(caller_index)->GetId(), 0); 
+
+        time_value = time_value + 10;
+}
+
+
+    Simulator::Stop(Seconds(100));
 
     // Run Simulation
     // Flow Monitor
@@ -224,7 +311,6 @@ int main(int argc, char *argv[]) {
 
     Simulator::Run();
     Simulator::Destroy();
-
 
     // Calculate metrics
     flowMonitor->CheckForLostPackets();

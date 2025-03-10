@@ -3,7 +3,7 @@
 namespace ns3
 {
 
-    UrbanManet::UrbanManet(std::string &protocolName, double &txp, std::string &packetSize, std::string &rate, std::string &phyMode, NodeContainer nodes)
+    UrbanManet::UrbanManet(std::string &protocolName, double &txp, std::string &packetSize, std::string &rate, std::string &phyMode, NodeContainer &nodes)
     {
 
         Config::SetDefault("ns3::OnOffApplication::PacketSize", StringValue(packetSize));
