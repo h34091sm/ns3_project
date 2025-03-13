@@ -13,9 +13,7 @@ endif()
 build_lib(
     LIBNAME EmergencyCentre
     SOURCE_FILES model/EmergencyCentre.cc
-                 helper/EmergencyCentre-helper.cc
     HEADER_FILES model/EmergencyCentre.h
-                 helper/EmergencyCentre-helper.h
     LIBRARIES_TO_LINK 
     ${libcore}
     ${libnetwork}

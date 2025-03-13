@@ -1,11 +1,11 @@
-#include "EmergencyCaller.h"
+#include "CivillianNodes.h"
 
 namespace ns3
 {
 
 /* ... */
 
-void EmergencyCaller::add_nodes(std::vector<ns3::Vector3D>& node_coordinates)
+void CivillianNodes::add_nodes(std::vector<ns3::Vector3D>& node_coordinates)
 {
     container.Create(node_coordinates.size());
     for (size_t i=0; i<node_coordinates.size(); i++) 

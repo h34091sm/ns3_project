@@ -1,15 +1,14 @@
-#ifndef EMERGENCYCALLER_H
-#define EMERGENCYCALLER_H
+#ifndef CIVILLIANNODES_H
+#define CIVILLIANNODES_H
 
 // Add a doxygen group for this module.
 // If you have more than one file, this should be in only one of them.
 /**
- * \defgroup EmergencyCaller Description of the EmergencyCaller
+ * \defgroup CivillianNodes Description of the CivillianNodes
  */
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
-#include "ns3/point-to-point-module.h"
 #include "ns3/applications-module.h"
 #include "ns3/dsdv-helper.h"
 #include "ns3/mobility-module.h"
@@ -22,10 +21,10 @@ namespace ns3
 {
 
 // Each class should be documented using Doxygen,
-// and have an \ingroup EmergencyCaller directive
+// and have an \ingroup CivillianNodes directive
 
 /* ... */
-class EmergencyCaller
+class CivillianNodes
 {
     private:
     ns3::NodeContainer container;
@@ -40,4 +39,4 @@ class EmergencyCaller
 
 }
 
-#endif /* EMERGENCYCALLER_H */
+#endif /* CIVILLIANNODES_H */

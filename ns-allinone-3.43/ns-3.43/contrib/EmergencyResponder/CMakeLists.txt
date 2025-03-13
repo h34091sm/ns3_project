@@ -13,9 +13,7 @@ endif()
 build_lib(
     LIBNAME EmergencyResponder
     SOURCE_FILES model/EmergencyResponder.cc
-                 helper/EmergencyResponder-helper.cc
     HEADER_FILES model/EmergencyResponder.h
-                 helper/EmergencyResponder-helper.h
     LIBRARIES_TO_LINK 
     ${libcore}
     ${libnetwork}

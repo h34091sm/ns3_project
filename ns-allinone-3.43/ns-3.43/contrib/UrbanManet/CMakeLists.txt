@@ -13,22 +13,19 @@ endif()
 build_lib(
     LIBNAME UrbanManet
     SOURCE_FILES model/UrbanManet.cc
-                 helper/UrbanManet-helper.cc
     HEADER_FILES model/UrbanManet.h
-                 helper/UrbanManet-helper.h
     LIBRARIES_TO_LINK 
     ${libcore}
     ${libnetwork}
     ${libinternet}
-    ${libpointtopoint}
     ${libapplications}
+    ${libnetanim}
+    ${libsocket}
     ${libdsdv}
     ${libolsr}
     ${libaodv}
     ${libdsr}
     ${libmobility}
-    ${libnetanim}
-    ${libsocket}
     ${libyanswifihelper}
     ${libflowmonitor}
 

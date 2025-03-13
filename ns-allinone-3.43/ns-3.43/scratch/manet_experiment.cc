@@ -15,7 +15,7 @@
 #include "ns3/network-module.h"
 #include "ns3/olsr-module.h"
 #include "ns3/yans-wifi-helper.h"
-#include "ns3/EmergencyCaller.h"
+#include "ns3/CivillianNodes.h"
 #include "ns3/EmergencyCentre.h"
 #include "ns3/EmergencyResponder.h"
 #include "ns3/UrbanManet.h"
@@ -210,11 +210,11 @@ void ChangeNodeSize(AnimationInterface *anim, uint32_t nodeId, double newSize)
 void ManetExperiment(int topologySize, std::string protocolName, double txp, std::string packetSize, std::string rate, std::string phyMode) 
 {
     int gridSize = 2 * topologySize;
-    int numCallers = topologySize * 0.7;
+    int numCivillians = topologySize * 0.7;
     int numCentres =  topologySize * 0.1; 
     int numResponders =  topologySize * 0.2;
 
-    int numCallersWhichExperienceEmergency = topologySize * 0.3;
+    int numEmergencyCallers = topologySize * 0.3;
 
     int simulationTime = topologySize * 3;
     std::cout << "Simulation Time: " << simulationTime << std::endl;
@@ -222,7 +222,7 @@ void ManetExperiment(int topologySize, std::string protocolName, double txp, std
 
     std::random_device rd;  // Obtain a random seed
     std::mt19937 gen(rd()); // Standard Mersenne Twister generator
-    std::uniform_int_distribution<int> dist(0, gridSize); // Max Grid size is always between 0 and 4*numCallers 
+    std::uniform_int_distribution<int> dist(0, gridSize); // Max Grid size is always between 0 and 4*numCivillians 
 
     // Configure Emergency Centre nodes 
     ns3::EmergencyCentre emergency_centre; 
@@ -237,16 +237,16 @@ void ManetExperiment(int topologySize, std::string protocolName, double txp, std
     NodeContainer centre_container = emergency_centre.get_container();
 
     // Configure Emergency Caller nodes 
-    ns3::EmergencyCaller emergency_caller;
+    ns3::CivillianNodes civillian_nodes;
 
-    std::vector<ns3::Vector3D> caller_coords;
-    for (int i=0; i<numCallers; i++)
+    std::vector<ns3::Vector3D> civillian_coords;
+    for (int i=0; i<numCivillians; i++)
     {
-        caller_coords.push_back(ns3::Vector3D(dist(gen), dist(gen), 0.0));
+        civillian_coords.push_back(ns3::Vector3D(dist(gen), dist(gen), 0.0));
     }
 
-    emergency_caller.add_nodes(caller_coords);
-    NodeContainer caller_container = emergency_caller.get_container();
+    civillian_nodes.add_nodes(civillian_coords);
+    NodeContainer civillian_container = civillian_nodes.get_container();
 
     // Configure Emergency Responder nodes  
     ns3::EmergencyResponder emergency_responder;
@@ -259,17 +259,17 @@ void ManetExperiment(int topologySize, std::string protocolName, double txp, std
     emergency_responder.add_nodes(responder_coords);
     NodeContainer responder_container = emergency_responder.get_container();
      
-    NodeContainer callers_which_experience_emergency; // out of all the citizens, these are the ones that experience emergency
+    NodeContainer emergency_callers; // out of all the citizens, these are the ones that experience emergency
 
-    for (int i=0; i<numCallersWhichExperienceEmergency; i++)
+    for (int i=0; i<numEmergencyCallers; i++)
     {
-        int rand_int = rand() % numCallers;
-        callers_which_experience_emergency.Add(caller_container.Get(rand_int));
+        int rand_int = rand() % numCivillians;
+        emergency_callers.Add(civillian_container.Get(rand_int));
     }
 
     // Node Container containing all nodes
     NodeContainer all_nodes;
-    all_nodes.Add(centre_container, caller_container, responder_container);
+    all_nodes.Add(centre_container, civillian_container, responder_container);
 
     UrbanManet manet = UrbanManet(protocolName, txp, packetSize, rate, phyMode, all_nodes);
 
@@ -294,22 +294,22 @@ void ManetExperiment(int topologySize, std::string protocolName, double txp, std
   
     double time_value = 2.0;
 
-    for (int i=0; i<numCallersWhichExperienceEmergency; i++)  // emergency simulation for callers that experience emergency
+    for (int i=0; i<numEmergencyCallers; i++)  // emergency simulation for callers that experience emergency
     {
-        uint32_t caller_index = callers_which_experience_emergency.Get(i)->GetId() - numCentres;
-        uint32_t responder_index = NearestNodeToCaller(caller_container.Get(caller_index), responder_container)->GetId() - numCallers - numCentres;
+        uint32_t caller_index = emergency_callers.Get(i)->GetId() - numCentres;
+        uint32_t responder_index = NearestNodeToCaller(civillian_container.Get(caller_index), responder_container)->GetId() - numCivillians - numCentres;
 
-        Ptr<RandomWaypointMobilityModel> caller_mobility = caller_container.Get(caller_index)->GetObject<RandomWaypointMobilityModel>();
+        Ptr<RandomWaypointMobilityModel> caller_mobility = civillian_container.Get(caller_index)->GetObject<RandomWaypointMobilityModel>();
         Ptr<ConstantVelocityMobilityModel> responder_mobility = responder_container.Get(responder_index)->GetObject<ConstantVelocityMobilityModel>();
 
-        Simulator::Schedule(Seconds(time_value), &FreezeNode, caller_container.Get(caller_index), 1.0);
+        Simulator::Schedule(Seconds(time_value), &FreezeNode, civillian_container.Get(caller_index), 1.0);
 
-        anim.UpdateNodeColor (caller_container.Get(caller_index), 2, 2, 2); // Black indicates that the nodes experience emergency
+        anim.UpdateNodeColor (civillian_container.Get(caller_index), 2, 2, 2); // Black indicates that the nodes experience emergency
 
-        Simulator::Schedule(Seconds(time_value + 1.0), &EmergencyCallWithResponse, caller_container.Get(caller_index), centre_container, responder_container, manet, gridSize); 
+        Simulator::Schedule(Seconds(time_value + 1.0), &EmergencyCallWithResponse, civillian_container.Get(caller_index), centre_container, responder_container, manet, gridSize); 
 
         // Remove emergency caller that has been attended to
-        Simulator::Schedule(Seconds(time_value + 6.0), &ChangeNodeSize, &anim, caller_container.Get(caller_index)->GetId(), 0); 
+        Simulator::Schedule(Seconds(time_value + 6.0), &ChangeNodeSize, &anim, civillian_container.Get(caller_index)->GetId(), 0); 
 
         time_value = time_value + 10;
     }

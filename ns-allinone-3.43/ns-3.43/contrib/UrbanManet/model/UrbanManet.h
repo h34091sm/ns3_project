@@ -8,17 +8,13 @@
 #include "ns3/applications-module.h"
 #include "ns3/netanim-module.h"
 #include "ns3/socket.h"
-#include "ns3/aodv-module.h"
-#include "ns3/applications-module.h"
-#include "ns3/core-module.h"
 #include "ns3/dsdv-module.h"
-#include "ns3/dsr-module.h"
-#include "ns3/flow-monitor-module.h"
-#include "ns3/internet-module.h"
-#include "ns3/mobility-module.h"
-#include "ns3/network-module.h"
 #include "ns3/olsr-module.h"
+#include "ns3/aodv-module.h"
+#include "ns3/dsr-module.h"
+#include "ns3/mobility-module.h"
 #include "ns3/yans-wifi-helper.h"
+#include "ns3/flow-monitor-module.h"
 
 #include <fstream>
 #include <iostream>
