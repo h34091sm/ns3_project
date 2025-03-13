@@ -5,7 +5,7 @@ namespace ns3
 
 /* ... */
 
-void CivillianNodes::add_nodes(std::vector<ns3::Vector3D>& node_coordinates)
+void CivillianNodes::add_nodes(std::vector<ns3::Vector3D>& node_coordinates, int gridSize)
 {
     container.Create(node_coordinates.size());
     for (size_t i=0; i<node_coordinates.size(); i++) 
@@ -17,8 +17,11 @@ void CivillianNodes::add_nodes(std::vector<ns3::Vector3D>& node_coordinates)
 
       // Set up a RandomRectanglePositionAllocator for destination selection
     Ptr<RandomRectanglePositionAllocator> randomAlloc = CreateObject<RandomRectanglePositionAllocator> ();
-    randomAlloc->SetAttribute("X", StringValue("ns3::UniformRandomVariable[Min=0.0|Max=100.0]"));
-    randomAlloc->SetAttribute("Y", StringValue("ns3::UniformRandomVariable[Min=0.0|Max=100.0]"));
+
+    std::string str_gridSize = "ns3::UniformRandomVariable[Min=0.0|Max=" + std::to_string(gridSize) + "]";
+    
+    randomAlloc->SetAttribute("X", StringValue(str_gridSize));
+    randomAlloc->SetAttribute("Y", StringValue(str_gridSize));
 
     caller_mobility.SetMobilityModel("ns3::RandomWaypointMobilityModel",
                                      "Speed", StringValue("ns3::ConstantRandomVariable[Constant=10.0]"),

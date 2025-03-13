@@ -245,7 +245,7 @@ void ManetExperiment(int topologySize, std::string protocolName, double txp, std
         civillian_coords.push_back(ns3::Vector3D(dist(gen), dist(gen), 0.0));
     }
 
-    civillian_nodes.add_nodes(civillian_coords);
+    civillian_nodes.add_nodes(civillian_coords, gridSize);
     NodeContainer civillian_container = civillian_nodes.get_container();
 
     // Configure Emergency Responder nodes  

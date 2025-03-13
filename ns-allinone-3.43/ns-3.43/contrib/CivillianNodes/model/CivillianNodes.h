@@ -32,7 +32,7 @@ class CivillianNodes
     ns3::Ptr<ListPositionAllocator> list_position_alloc = CreateObject<ListPositionAllocator> ();
 
     public:
-    void add_nodes(std::vector<ns3::Vector3D>& node_coordinates);
+    void add_nodes(std::vector<ns3::Vector3D>& node_coordinates, int gridSize);
     ns3::NodeContainer get_container() {return container;}
 };
 
