@@ -5,9 +5,9 @@ namespace ns3
 
 /* ... */
     // Add this function to write results to a CSV file
-    void UrbanManetRoutingExperiment::WriteResultsToCsv(int topologySize, std::string routingProtocol, double pdr, double avgEndToEndDelay) 
+    void UrbanManetRoutingExperiment::WriteResultsToCsv(int topologySize, std::string routingProtocol, double pdr, double avgEndToEndDelay, double throughput) 
     {
-        std::string csv_filepath = "scratch/" + routingProtocol + "-manet-experiment-results.csv";
+        std::string csv_filepath = "scratch/manet-experiment-results.csv";
         std::ofstream outFile(csv_filepath, std::ios::app);  // Append mode
         if (!outFile) {
             NS_LOG_UNCOND("Error opening file for appending.");
@@ -17,16 +17,16 @@ namespace ns3
         // Write header only if the file is empty
         outFile.seekp(0, std::ios::end);
         if (outFile.tellp() == 0) {
-            outFile << "Topology Size," <<  "Packet Delivery Ratio (%)," << "Average End-to-End Delay (s)," << "\n";
+            outFile << "Topology Size," << "Routing Protocol," << "Packet Delivery Ratio (%)," << "Average End-to-End Delay (s)," << "Throuput (packets/second)," << "\n";
         }
 
-        outFile << topologySize << ", "  << pdr << ", "<< avgEndToEndDelay << "\n";
+        outFile << topologySize << ", " << routingProtocol << ", "  << pdr << ", " << avgEndToEndDelay << ", " << throughput << "\n";
         outFile.close();
 
         NS_LOG_UNCOND("Results appended to " << csv_filepath);
     }
 
-
+    // once a responder is notified of an emergency call, it should move towards the emergency caller
     void UrbanManetRoutingExperiment::MoveResponderToCaller(Ptr<Node> caller_node, Ptr<Node> responder_node, int &gridSize) 
     {
         Ptr<ConstantVelocityMobilityModel> r_mobility = responder_node->GetObject<ConstantVelocityMobilityModel>();
@@ -41,18 +41,20 @@ namespace ns3
             && (r_mobility->GetPosition().y <= c_mobility->GetPosition().y + 1)
             )
         {
-            r_mobility->SetVelocity(Vector3D(0.0, 0.0, 0.0));
+            r_mobility->SetVelocity(Vector3D(0.0, 0.0, 0.0));  // stop the responder at the same coordinates as the caller
             return;
         }
 
         else 
         {
+            // if the responder is out of bounds, it should stop immediately 
             if (r_mobility->GetPosition().x > gridSize || r_mobility->GetPosition().x < 0 || r_mobility->GetPosition().y > gridSize || r_mobility->GetPosition().y < 0) // if node goes out of bounds
             {
                 r_mobility->SetVelocity(Vector3D(0.0, 0.0, 0.0));
                 return;
             }
 
+            // move the responder towards the caller 
             else 
             {
                 r_mobility->SetVelocity(velocity);
@@ -94,10 +96,10 @@ namespace ns3
     // Stop a node that is experiencing emergency
     void UrbanManetRoutingExperiment::FreezeNode(Ptr<Node> node, double interval)
     {
-    Ptr<MobilityModel> mob = node->GetObject<MobilityModel>();
-    mob->SetPosition(mob->GetPosition());
+        Ptr<MobilityModel> mob = node->GetObject<MobilityModel>();
+        mob->SetPosition(mob->GetPosition());
 
-    Simulator::Schedule(Seconds(interval), &UrbanManetRoutingExperiment::FreezeNode, this, node, interval);
+        Simulator::Schedule(Seconds(interval), &UrbanManetRoutingExperiment::FreezeNode, this, node, interval);
     }
 
 
@@ -132,9 +134,14 @@ namespace ns3
 
 
 
+    /*Function that configures all of the communication within an urban mobile ad-hoc network as follows:  
+        1. Emergency Caller notifies the closest Emergency Centre of the emergency
+        2. The Centre notifies the Emergency Responder that is closest to the caller 
+        3. The Emergency responder node moves towards the node that made the initial emergency call*/ 
+    
     void UrbanManetRoutingExperiment::EmergencyCallWithResponse(Ptr<Node> caller, NodeContainer &centre_container, NodeContainer &responder_container, UrbanManet &manet, int &gridSize)
     {
-
+        // configure the emergency call 
         Ptr<Node> nearestCentre = NearestNodeToCaller(caller, centre_container);
         Ipv4Address centre_address = manet.get_adhocInterface().GetAddress(nearestCentre->GetId());
 
@@ -155,7 +162,7 @@ namespace ns3
 
         Simulator::Schedule(Seconds(0.0), &UrbanManetRoutingExperiment::SendPacket, this, send_emergency_call, centre_address, 8080, message);
 
-
+        // configure the notification to the emergency responder 
         Ptr<Socket> recv_centre_req = RecvSocketConfig(nearestResponder);
         recv_centre_req->SetRecvCallback(MakeCallback(&UrbanManetRoutingExperiment::ReceivePacket, this));
         Ptr<Socket> send_centre_req = Socket::CreateSocket(nearestCentre, UdpSocketFactory::GetTypeId());  // Sender
@@ -167,19 +174,21 @@ namespace ns3
 
         Simulator::Schedule(Seconds(1.0), &UrbanManetRoutingExperiment::SendPacket, this, send_centre_req, responder_address, 8080, message1); 
 
+        // move the responder to the caller
         Simulator::Schedule(Seconds(3.0), &UrbanManetRoutingExperiment::MoveResponderToCaller, this, caller, nearestResponder, gridSize); 
     } 
 
 
-    // To make a caller node disappear after responder has attended it 
+    // To make a caller node disappear from the animation after responder has attended it 
     void UrbanManetRoutingExperiment::ChangeNodeSize(AnimationInterface *anim, uint32_t nodeId, double newSize) 
     {
         anim->UpdateNodeSize(nodeId, newSize, newSize); // Width and height
     }
 
-
+    // function to run the entire experiment
     void UrbanManetRoutingExperiment::RunExperiment(int topologySize, std::string protocolName, double txp, std::string packetSize, std::string rate, std::string phyMode) 
     {
+        // configure topology parameters 
         int gridSize = 2 * topologySize;
         int numCivillians = topologySize * 0.7;
         int numCentres =  topologySize * 0.1; 
@@ -256,6 +265,7 @@ namespace ns3
             anim.UpdateNodeSize (*j, 5, 5);
         }
 
+        // change colour and size of Emergency Responder nodes to distinguish it from other nodes
         for (auto j = responder_container.Begin(); j != responder_container.End(); ++j)
         {
             Ptr<Node> object = *j;
@@ -265,7 +275,7 @@ namespace ns3
     
         double time_value = 2.0;
 
-        for (int i=0; i<numEmergencyCallers; i++)  // emergency simulation for callers that experience emergency
+        for (int i=0; i<numEmergencyCallers; i++)  // emergency simulation for civillains that experience emergency
         {
             uint32_t caller_index = emergency_callers.Get(i)->GetId() - numCentres;
             uint32_t responder_index = NearestNodeToCaller(civillian_container.Get(caller_index), responder_container)->GetId() - numCivillians - numCentres;
@@ -288,8 +298,7 @@ namespace ns3
 
         Simulator::Stop(Seconds(simulationTime));
 
-        // Run Simulation
-        // Flow Monitor
+        // Setup flow monitor  
         Ptr<FlowMonitor> flowMonitor;
         FlowMonitorHelper flowHelper;
         flowMonitor = flowHelper.InstallAll();
@@ -326,12 +335,16 @@ namespace ns3
         // Compute and log overall results
         double pdr = (totalRxPackets * 100.0) / totalTxPackets;
         double avgEndToEndDelay = totalDelay / totalRxPackets;
+        double throughput = static_cast<double>(totalRxPackets) / simulationTime;
+
+
 
         NS_LOG_UNCOND("Overall Packet Delivery Ratio: " << pdr << "%");
         NS_LOG_UNCOND("Overall Avg End-to-End Delay: " << avgEndToEndDelay << " seconds");
+        NS_LOG_UNCOND("Throughput: " << throughput << " packets/sec");
 
         // Insert this function call before the end of ManetExperiment()
-        WriteResultsToCsv(topologySize, protocolName, pdr, avgEndToEndDelay);
+        WriteResultsToCsv(topologySize, protocolName, pdr, avgEndToEndDelay, throughput);
 
         flowMonitor->SerializeToXmlFile("flow-monitor-results.xml", true, true);
     }

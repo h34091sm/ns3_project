@@ -3,12 +3,6 @@ if(HAVE_STDINT_H)
     add_definitions(-DHAVE_STDINT_H)
 endif()
 
-set(examples_as_tests_sources)
-if(${ENABLE_EXAMPLES})
-    set(examples_as_tests_sources
-        #test/CivillianNodes-examples-test-suite.cc
-        )
-endif()
 
 build_lib(
     LIBNAME CivillianNodes
@@ -25,6 +19,4 @@ build_lib(
     ${libmobility}
     ${libnetanim}
 
-    TEST_SOURCES test/CivillianNodes-test-suite.cc
-                 ${examples_as_tests_sources}
 )

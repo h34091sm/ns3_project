@@ -5,7 +5,7 @@ namespace ns3
 
 /* ... */
 
-
+// Given node coordinates, create topology of those nodes using Constant Mobility model
 void EmergencyCentre::add_nodes(std::vector<ns3::Vector3D> & nodes_coordinates)
 {
     container.Create(nodes_coordinates.size());

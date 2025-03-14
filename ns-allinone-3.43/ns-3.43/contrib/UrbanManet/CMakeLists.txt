@@ -3,12 +3,7 @@ if(HAVE_STDINT_H)
     add_definitions(-DHAVE_STDINT_H)
 endif()
 
-set(examples_as_tests_sources)
-if(${ENABLE_EXAMPLES})
-    set(examples_as_tests_sources
-        #test/UrbanManet-examples-test-suite.cc
-        )
-endif()
+
 
 build_lib(
     LIBNAME UrbanManet
@@ -31,6 +26,5 @@ build_lib(
 
 
 
-    TEST_SOURCES test/UrbanManet-test-suite.cc
-                 ${examples_as_tests_sources}
+  
 )

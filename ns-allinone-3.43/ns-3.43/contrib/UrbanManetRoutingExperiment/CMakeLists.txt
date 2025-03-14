@@ -3,12 +3,6 @@ if(HAVE_STDINT_H)
     add_definitions(-DHAVE_STDINT_H)
 endif()
 
-set(examples_as_tests_sources)
-if(${ENABLE_EXAMPLES})
-    set(examples_as_tests_sources
-        #test/UrbanManetRoutingExperiment-examples-test-suite.cc
-        )
-endif()
 
 build_lib(
     LIBNAME UrbanManetRoutingExperiment
@@ -33,6 +27,5 @@ build_lib(
     ${libemergencyresponder}
     ${liburbanmanet}
 
-    TEST_SOURCES test/UrbanManetRoutingExperiment-test-suite.cc
-                 ${examples_as_tests_sources}
+
 )

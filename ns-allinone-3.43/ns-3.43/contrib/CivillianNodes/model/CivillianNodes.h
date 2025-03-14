@@ -28,7 +28,7 @@ class CivillianNodes
 {
     private:
     ns3::NodeContainer container;
-    ns3::MobilityHelper caller_mobility;
+    ns3::MobilityHelper civillian_mobility;
     ns3::Ptr<ListPositionAllocator> list_position_alloc = CreateObject<ListPositionAllocator> ();
 
     public:

@@ -5,6 +5,8 @@ namespace ns3
 
 /* ... */
 
+
+// Given node coordinates, configure responder nodes using constant velocity model
 void EmergencyResponder::add_nodes(std::vector<ns3::Vector3D>& node_coordinates)
 {
     container.Create(node_coordinates.size());

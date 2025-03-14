@@ -2,7 +2,7 @@
 
 namespace ns3
 {
-
+    // configure the communication channels for an MANET in an Urban environment
     UrbanManet::UrbanManet(std::string &protocolName, double &txp, std::string &packetSize, std::string &rate, std::string &phyMode, NodeContainer &nodes)
     {
 

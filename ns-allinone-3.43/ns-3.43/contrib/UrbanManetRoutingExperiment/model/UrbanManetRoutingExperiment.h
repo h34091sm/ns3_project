@@ -47,7 +47,7 @@ namespace ns3
         private: 
         std::vector<double> packetReceiveTimes;
 
-        void WriteResultsToCsv(int topologySize, std::string routingProtocol, double pdr, double avgEndToEndDelay);
+        void WriteResultsToCsv(int topologySize, std::string routingProtocol, double pdr, double avgEndToEndDelay, double throughput);
         void MoveResponderToCaller(Ptr<Node> caller_node, Ptr<Node> responder_node, int &gridSize);
         Ptr<Node> NearestNodeToCaller(Ptr<Node> node, NodeContainer container);
         void FreezeNode(Ptr<Node> node, double interval);
