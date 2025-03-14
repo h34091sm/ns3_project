@@ -17,7 +17,7 @@ namespace ns3
         // Write header only if the file is empty
         outFile.seekp(0, std::ios::end);
         if (outFile.tellp() == 0) {
-            outFile << "Topology Size," << "Routing Protocol," << "Packet Delivery Ratio (%)," << "Average End-to-End Delay (s)," << "Throuput (packets/second)," << "\n";
+            outFile << "Topology Size," << "Routing Protocol," << "Packet Delivery Ratio (%)," << "Average End-to-End Delay (s)," << "Throuput (bytes/second)," << "\n";
         }
 
         outFile << topologySize << ", " << routingProtocol << ", "  << pdr << ", " << avgEndToEndDelay << ", " << throughput << "\n";
@@ -118,6 +118,7 @@ namespace ns3
             uint8_t buffer[1024];  // Buffer to store received data
             packet->CopyData(buffer, packet->GetSize());
             packetReceiveTimes.push_back((Simulator::Now()).GetSeconds());
+            bytesTotal += packet->GetSize();
             NS_LOG_UNCOND("Time = " << (Simulator::Now()).GetSeconds() << ": Packet received. " 
                                 << std::string((char*)buffer, packet->GetSize()) << std::endl);
         }
@@ -128,10 +129,10 @@ namespace ns3
     void UrbanManetRoutingExperiment::SendPacket(Ptr<Socket> socket, Ipv4Address destination, uint16_t port, std::string msg) {
         Ptr<Packet> packet = Create<Packet>((uint8_t*)msg.c_str(), msg.size());
         socket->SendTo(packet, 0, InetSocketAddress(destination, port)); // Send packet to receiver
+        bytesTotal += packet->GetSize();
         NS_LOG_UNCOND("Time = " << (Simulator::Now()).GetSeconds() << ": Packet Sent. " << msg);
 
     }
-
 
 
     /*Function that configures all of the communication within an urban mobile ad-hoc network as follows:  
@@ -188,6 +189,8 @@ namespace ns3
     // function to run the entire experiment
     void UrbanManetRoutingExperiment::RunExperiment(int topologySize, std::string protocolName, double txp, std::string packetSize, std::string rate, std::string phyMode) 
     {
+        bytesTotal = 0;
+
         // configure topology parameters 
         int gridSize = 2 * topologySize;
         int numCivillians = topologySize * 0.7;
@@ -196,7 +199,7 @@ namespace ns3
 
         int numEmergencyCallers = topologySize * 0.3;
 
-        int simulationTime = topologySize * 3;
+        double simulationTime = static_cast<double> (topologySize * 3);
         std::cout << "Simulation Time: " << simulationTime << std::endl;
         std::cout << "Grid Size: " << gridSize << std::endl;
 
@@ -252,9 +255,11 @@ namespace ns3
         all_nodes.Add(centre_container, civillian_container, responder_container);
 
         UrbanManet manet = UrbanManet(protocolName, txp, packetSize, rate, phyMode, all_nodes);
-
+        
+        
         std::string animation_path_name = "scratch/" + protocolName + "-manet-experiment-" + std::to_string(topologySize) + ".xml";
         AnimationInterface anim (animation_path_name);
+        anim.SetMaxPktsPerTraceFile(200000);
         anim.EnablePacketMetadata(true);
 
         // change colour and size of Emergency Centre nodes to distinguish it from other nodes
@@ -335,13 +340,13 @@ namespace ns3
         // Compute and log overall results
         double pdr = (totalRxPackets * 100.0) / totalTxPackets;
         double avgEndToEndDelay = totalDelay / totalRxPackets;
-        double throughput = static_cast<double>(totalRxPackets) / simulationTime;
-
+        // double throughput = static_cast<double>(totalRxPackets) / simulationTime;
+        double throughput = static_cast<double>(bytesTotal) / simulationTime;
 
 
         NS_LOG_UNCOND("Overall Packet Delivery Ratio: " << pdr << "%");
         NS_LOG_UNCOND("Overall Avg End-to-End Delay: " << avgEndToEndDelay << " seconds");
-        NS_LOG_UNCOND("Throughput: " << throughput << " packets/sec");
+        NS_LOG_UNCOND("Throughput: " << throughput << " bytes/sec");
 
         // Insert this function call before the end of ManetExperiment()
         WriteResultsToCsv(topologySize, protocolName, pdr, avgEndToEndDelay, throughput);

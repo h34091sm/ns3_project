@@ -14,6 +14,8 @@ int main(int argc, char *argv[]) {
 
     int topologySize = std::stoi(argv[1]);
     std::string protocolName = argv[2];
+    int number_of_runs = std::stoi(argv[3]);
+
 
     // Ptr<UrbanManetRoutingExperiment> manet_experiment;
     UrbanManetRoutingExperiment manet_experiment;
@@ -34,13 +36,14 @@ int main(int argc, char *argv[]) {
     
         else 
         {
-            for (size_t i=0; i<3; i++)
+            for (int i=0; i<number_of_runs; i++)
             { 
                 manet_experiment.RunExperiment(topologySize, protocolName, 7.5, "64", "2048bps", "DsssRate11Mbps");
             }
     
         }
     }
+    
 
     return 0;
 }
