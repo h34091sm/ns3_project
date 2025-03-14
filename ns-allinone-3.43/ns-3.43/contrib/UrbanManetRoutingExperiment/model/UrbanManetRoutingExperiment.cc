@@ -17,10 +17,10 @@ namespace ns3
         // Write header only if the file is empty
         outFile.seekp(0, std::ios::end);
         if (outFile.tellp() == 0) {
-            outFile << "Topology Size," << "Routing Protocol," << "Packet Delivery Ratio (%)," << "Average End-to-End Delay (s)," << "\n";
+            outFile << "Topology Size," <<  "Packet Delivery Ratio (%)," << "Average End-to-End Delay (s)," << "\n";
         }
 
-        outFile << topologySize << ", " << routingProtocol << ", " << pdr << ", "<< avgEndToEndDelay << "\n";
+        outFile << topologySize << ", "  << pdr << ", "<< avgEndToEndDelay << "\n";
         outFile.close();
 
         NS_LOG_UNCOND("Results appended to " << csv_filepath);
