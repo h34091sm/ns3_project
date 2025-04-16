@@ -5,9 +5,9 @@ namespace ns3
 
 /* ... */
     // Add this function to write results to a CSV file
-    void UrbanManetRoutingExperiment::WriteResultsToCsv(int topologySize, std::string routingProtocol, double pdr, double avgEndToEndDelay, double throughput) 
+    void UrbanManetRoutingExperiment::WriteResultsToCsv(std::string experiment, int topology_or_grid_size, std::string routingProtocol, double pdr, double avgEndToEndDelay, double throughput) 
     {
-        std::string csv_filepath = "scratch/manet-experiment-results.csv";
+        std::string csv_filepath = "scratch/" + experiment + "/manet-experiment-results.csv";
         std::ofstream outFile(csv_filepath, std::ios::app);  // Append mode
         if (!outFile) {
             NS_LOG_UNCOND("Error opening file for appending.");
@@ -17,10 +17,18 @@ namespace ns3
         // Write header only if the file is empty
         outFile.seekp(0, std::ios::end);
         if (outFile.tellp() == 0) {
-            outFile << "Topology Size," << "Routing Protocol," << "Packet Delivery Ratio (%)," << "Average End-to-End Delay (s)," << "Throuput (bytes/second)," << "\n";
+
+            if (experiment == "experiment1")
+            {
+                outFile << "Topology Size," << "Routing Protocol," << "Packet Delivery Ratio (%)," << "Average End-to-End Delay (s)," << "Throuput (bytes/second)," << "\n";
+            }
+            else 
+            {
+                outFile << "Grid Size," << "Routing Protocol," << "Packet Delivery Ratio (%)," << "Average End-to-End Delay (s)," << "Throuput (bytes/second)," << "\n";
+            }
         }
 
-        outFile << topologySize << ", " << routingProtocol << ", "  << pdr << ", " << avgEndToEndDelay << ", " << throughput << "\n";
+        outFile << topology_or_grid_size << ", " << routingProtocol << ", "  << pdr << ", " << avgEndToEndDelay << ", " << throughput << "\n";
         outFile.close();
 
         NS_LOG_UNCOND("Results appended to " << csv_filepath);
@@ -187,12 +195,12 @@ namespace ns3
     }
 
     // function to run the entire experiment
-    void UrbanManetRoutingExperiment::RunExperiment(int topologySize, std::string protocolName, double txp, std::string packetSize, std::string rate, std::string phyMode) 
+    void UrbanManetRoutingExperiment::RunExperiment(std::string experiment, int topologySize, int gridSize, std::string protocolName, double txp, std::string packetSize, std::string rate, std::string phyMode) 
     {
         bytesTotal = 0;
 
         // configure topology parameters 
-        int gridSize = 2 * topologySize;
+        // int gridSize = 2 * topologySize;
         int numCivillians = topologySize * 0.7;
         int numCentres =  topologySize * 0.1; 
         int numResponders =  topologySize * 0.2;
@@ -256,8 +264,16 @@ namespace ns3
 
         UrbanManet manet = UrbanManet(protocolName, txp, packetSize, rate, phyMode, all_nodes);
         
-        
-        std::string animation_path_name = "scratch/" + protocolName + "-manet-experiment-" + std::to_string(topologySize) + ".xml";
+        std::string animation_path_name;
+        if (experiment == "experiment1") 
+        {
+            animation_path_name = "scratch/" + experiment + "/" + protocolName + "-manet-experiment-" + std::to_string(topologySize) + ".xml";
+        }
+        else 
+        {
+            animation_path_name = "scratch/" + experiment + "/" + protocolName + "-manet-experiment-" + std::to_string(gridSize) + ".xml";
+        }
+        // std::string animation_path_name = "scratch/" + experiment + "/" + protocolName + "-manet-experiment-" + std::to_string(topologySize) + ".xml";
         AnimationInterface anim (animation_path_name);
         anim.SetMaxPktsPerTraceFile(200000);
         anim.EnablePacketMetadata(true);
@@ -349,7 +365,14 @@ namespace ns3
         NS_LOG_UNCOND("Throughput: " << throughput << " bytes/sec");
 
         // Insert this function call before the end of ManetExperiment()
-        WriteResultsToCsv(topologySize, protocolName, pdr, avgEndToEndDelay, throughput);
+        if (experiment == "experiment1")
+        {
+            WriteResultsToCsv(experiment, topologySize, protocolName, pdr, avgEndToEndDelay, throughput);
+        }
+        else
+        {
+            WriteResultsToCsv(experiment ,gridSize, protocolName, pdr, avgEndToEndDelay, throughput);
+        }
 
         flowMonitor->SerializeToXmlFile("flow-monitor-results.xml", true, true);
     }

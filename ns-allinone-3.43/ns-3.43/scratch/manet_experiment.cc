@@ -12,38 +12,30 @@ int main(int argc, char *argv[]) {
     LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
     LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
 
-    int topologySize = std::stoi(argv[1]);
-    std::string protocolName = argv[2];
-    int number_of_runs = std::stoi(argv[3]);
+    std::string experiment = argv[1];
 
 
     // Ptr<UrbanManetRoutingExperiment> manet_experiment;
     UrbanManetRoutingExperiment manet_experiment;
 
-
-    if (topologySize < 10)
+    if (experiment == "experiment1") 
     {
-        std::cout << "Need at least 10 nodes" << std::endl;
-    }
-
-    else
-    {    
-
-        if (protocolName != "OLSR" && protocolName != "DSDV" && protocolName != "DSR" && protocolName != "AODV")
-        {
-            std::cout << "Enter a valid protocol name: AODV, DSDV, OLSR or DSR" << std::endl;
+        for (int topologySize=20; topologySize<100; topologySize = topologySize + 10)
+        { 
+            manet_experiment.RunExperiment(experiment, topologySize, 2*topologySize, "AODV", 7.5, "64", "2048bps", "DsssRate11Mbps");
+            manet_experiment.RunExperiment(experiment, topologySize, 2*topologySize, "DSDV", 7.5, "64", "2048bps", "DsssRate11Mbps");
         }
+    }   
     
-        else 
-        {
-            for (int i=0; i<number_of_runs; i++)
-            { 
-                manet_experiment.RunExperiment(topologySize, protocolName, 7.5, "64", "2048bps", "DsssRate11Mbps");
-            }
-    
+    else if (experiment == "experiment2") 
+    {
+        for (int gridSize=20; gridSize<200; gridSize = gridSize + 20)
+        { 
+            manet_experiment.RunExperiment(experiment, 60, gridSize, "AODV", 7.5, "64", "2048bps", "DsssRate11Mbps");
+            manet_experiment.RunExperiment(experiment, 60, gridSize, "DSDV", 7.5, "64", "2048bps", "DsssRate11Mbps");
         }
     }
-    
+
 
     return 0;
 }
