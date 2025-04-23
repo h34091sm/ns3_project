@@ -20,20 +20,25 @@ int main(int argc, char *argv[]) {
 
     if (experiment == "experiment1") 
     {
-        for (int topologySize=20; topologySize<100; topologySize = topologySize + 10)
-        { 
-            manet_experiment.RunExperiment(experiment, topologySize, 2*topologySize, "AODV", 7.5, "64", "2048bps", "DsssRate11Mbps");
-            manet_experiment.RunExperiment(experiment, topologySize, 2*topologySize, "DSDV", 7.5, "64", "2048bps", "DsssRate11Mbps");
-        }
+        // for (int topologySize=100; topologySize<150; topologySize = topologySize + 10)
+        // { 
+        //     manet_experiment.RunExperiment(experiment, topologySize, 2*topologySize, "AODV", 7.5, "64", "2048bps", "DsssRate11Mbps");
+        //     // manet_experiment.RunExperiment(experiment, topologySize, 2*topologySize, "DSDV", 7.5, "64", "2048bps", "DsssRate11Mbps");
+        // }
+        manet_experiment.RunExperiment(experiment, 30, 60, "AODV", 7.5, "64", "2048bps", "DsssRate11Mbps");
+
     }   
     
     else if (experiment == "experiment2") 
     {
-        for (int gridSize=20; gridSize<200; gridSize = gridSize + 20)
-        { 
-            manet_experiment.RunExperiment(experiment, 60, gridSize, "AODV", 7.5, "64", "2048bps", "DsssRate11Mbps");
-            manet_experiment.RunExperiment(experiment, 60, gridSize, "DSDV", 7.5, "64", "2048bps", "DsssRate11Mbps");
-        }
+        // for (int gridSize=400; gridSize<640; gridSize = gridSize + 40)
+        // { 
+        //     manet_experiment.RunExperiment(experiment, 40, gridSize, "AODV", 7.5, "64", "2048bps", "DsssRate11Mbps");
+        //     manet_experiment.RunExperiment(experiment, 40, gridSize, "DSDV", 7.5, "64", "2048bps", "DsssRate11Mbps");
+        // }
+        manet_experiment.RunExperiment(experiment, 40, 40, "DSDV", 7.5, "64", "2048bps", "DsssRate11Mbps");
+
+
     }
 
 

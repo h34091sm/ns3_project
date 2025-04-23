@@ -275,7 +275,7 @@ namespace ns3
         }
         // std::string animation_path_name = "scratch/" + experiment + "/" + protocolName + "-manet-experiment-" + std::to_string(topologySize) + ".xml";
         AnimationInterface anim (animation_path_name);
-        anim.SetMaxPktsPerTraceFile(200000);
+        anim.SetMaxPktsPerTraceFile(1000000000000000000);
         anim.EnablePacketMetadata(true);
 
         // change colour and size of Emergency Centre nodes to distinguish it from other nodes
@@ -325,6 +325,7 @@ namespace ns3
         flowMonitor = flowHelper.InstallAll();
 
         Simulator::Run();
+        // std::cout << "Simulation Time:  " << Simulator::Now().GetSeconds() << std::endl;
         Simulator::Destroy();
 
         // Calculate metrics
@@ -356,7 +357,7 @@ namespace ns3
         // Compute and log overall results
         double pdr = (totalRxPackets * 100.0) / totalTxPackets;
         double avgEndToEndDelay = totalDelay / totalRxPackets;
-        // double throughput = static_cast<double>(totalRxPackets) / simulationTime;
+
         double throughput = static_cast<double>(bytesTotal) / simulationTime;
 
 
